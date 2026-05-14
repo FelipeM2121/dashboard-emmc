@@ -285,6 +285,12 @@
           placeholder="Hoja1">
         <p class="text-xs text-slate-400 mt-1">Nombre de la pestaña en el spreadsheet</p>
       </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">URL del Backend (Google Apps Script)</label>
+        <input id="cfgGasUrl" type="text" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono"
+          placeholder="https://script.google.com/macros/s/.../exec">
+        <p class="text-xs text-slate-400 mt-1">Opcional. Si se configura, habilita edición desde la web. Ver <code>gas-backend.gs</code> para instrucciones.</p>
+      </div>
       <div class="bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
         <strong>Nota:</strong> La conexión a Google Sheets es gestionada automáticamente por el servidor local (server.py). Los cambios se sincronizan usando el botón "Sincronizar con Sheets".
       </div>
@@ -309,11 +315,13 @@ const DEFAULT_SHEET_ID   = '1B4drO9RVgZRwOk0hdNgCssbdtgmHkh3t-XzoT8_YVfo';
 const DEFAULT_SHEET_NAME = 'Consolidado';
 
 let cfg = {
-  sheetId:   DEFAULT_SHEET_ID,
-  sheetName: DEFAULT_SHEET_NAME
+  sheetId:   localStorage.getItem('cfg_sheetId')   || DEFAULT_SHEET_ID,
+  sheetName: localStorage.getItem('cfg_sheetName') || DEFAULT_SHEET_NAME,
+  gasUrl:    localStorage.getItem('cfg_gasUrl')    || ''
 };
 
-const IS_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+const IS_LOCAL     = ['localhost', '127.0.0.1'].includes(location.hostname);
+const HAS_BACKEND  = () => IS_LOCAL || !!cfg.gasUrl;
 
 // ============================================================
 // STATE
@@ -337,11 +345,6 @@ const READONLY_COLS = new Set([0]);
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  if (!IS_LOCAL) {
-    // Ocultar funciones que requieren el servidor local
-    document.getElementById('btnSync')?.remove();
-    document.querySelectorAll('[onclick="syncChanges()"]').forEach(el => el.remove());
-  }
   loadData();
   setInterval(loadData, 300000);
 });
@@ -352,14 +355,20 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadData() {
   setLoading(true);
   try {
-    if (IS_LOCAL) {
-      await loadFromServer();
-    } else {
-      await loadFromSheets();
-    }
+    if (IS_LOCAL)       await loadFromServer();
+    else if (cfg.gasUrl) await loadFromGAS();
+    else                await loadFromSheets(); // solo lectura vía gviz
   } catch(e) {
     setError(e.message || 'Error al cargar datos');
   }
+}
+
+async function loadFromGAS() {
+  const resp = await fetch(cfg.gasUrl);
+  if (!resp.ok) throw new Error(`Error ${resp.status} al conectar con el backend GAS. Verifica la URL en Config.`);
+  const data = await resp.json();
+  if (data.error) throw new Error('Backend GAS: ' + data.error);
+  processApiData(data);
 }
 
 async function loadFromServer() {
@@ -664,7 +673,7 @@ function renderTable() {
       tr.innerHTML += `<td class="px-3 py-2 whitespace-nowrap ${edited}" data-di="${di}" data-ci="${ci}">${display}</td>`;
     });
 
-    if (IS_LOCAL) {
+    if (HAS_BACKEND()) {
       tr.innerHTML += `<td class="px-3 py-2">
         <button onclick="openEdit(${di})" class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-50">
           Editar
@@ -909,7 +918,7 @@ function downloadCSV(rows, filename) {
 }
 
 // ============================================================
-// GOOGLE SHEETS SYNC (via local server)
+// GOOGLE SHEETS SYNC
 // ============================================================
 async function syncChanges() {
   if (!Object.keys(changes).length) { showToast('No hay cambios.'); return; }
@@ -917,17 +926,28 @@ async function syncChanges() {
   const updates = [];
   Object.entries(changes).forEach(([key, val]) => {
     const [di, ci] = key.split('_').map(Number);
-    updates.push({ row: di + 2, col: ci + 1, value: val }); // 1-based, +1 for header row
+    updates.push({ row: di + 2, col: ci + 1, value: val });
   });
 
   try {
-    const res = await fetch('/api/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ updates })
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const result = await res.json();
+    let result;
+    if (IS_LOCAL) {
+      const res = await fetch('/api/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      result = await res.json();
+    } else if (cfg.gasUrl) {
+      const url = cfg.gasUrl + '?action=update&payload=' + encodeURIComponent(JSON.stringify(updates));
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      result = await res.json();
+    } else {
+      throw new Error('No hay backend configurado. Configura la URL de GAS en Config.');
+    }
+
     if (!result.ok) throw new Error(result.error || 'Error desconocido');
 
     Object.entries(changes).forEach(([key, val]) => {
@@ -961,6 +981,7 @@ function importCSV(input) {
 function openConfigModal() {
   document.getElementById('cfgSheetId').value   = cfg.sheetId;
   document.getElementById('cfgSheetName').value = cfg.sheetName;
+  document.getElementById('cfgGasUrl').value    = cfg.gasUrl;
   document.getElementById('configModal').classList.remove('hidden');
 }
 
@@ -971,8 +992,13 @@ function closeConfigModal() {
 function saveConfig() {
   cfg.sheetId   = document.getElementById('cfgSheetId').value.trim()   || DEFAULT_SHEET_ID;
   cfg.sheetName = document.getElementById('cfgSheetName').value.trim() || DEFAULT_SHEET_NAME;
+  cfg.gasUrl    = document.getElementById('cfgGasUrl').value.trim();
+  localStorage.setItem('cfg_sheetId',   cfg.sheetId);
+  localStorage.setItem('cfg_sheetName', cfg.sheetName);
+  localStorage.setItem('cfg_gasUrl',    cfg.gasUrl);
   closeConfigModal();
-  showToast('Configuración guardada. El servidor usa estos valores al iniciarse.');
+  showToast('Configuración guardada. Recargando datos…');
+  loadData();
 }
 
 // ============================================================
