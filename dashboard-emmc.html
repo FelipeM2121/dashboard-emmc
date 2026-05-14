@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard EMMC – Hospital Buin Paine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+    .cell-edited { background-color: #fef9c3 !important; }
+    .th-sortable { cursor: pointer; user-select: none; }
+    .th-sortable:hover { background-color: #1e3a5f; }
+    .th-sort-asc::after  { content: " ▲"; font-size: 0.7em; }
+    .th-sort-desc::after { content: " ▼"; font-size: 0.7em; }
+    ::-webkit-scrollbar { height: 6px; width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+    .modal-backdrop { backdrop-filter: blur(2px); }
+    input[type="text"]:focus, select:focus, input[type="date"]:focus {
+      outline: 2px solid #2563eb; outline-offset: 1px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 1s linear infinite; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+    .badge-si { background: #dcfce7; color: #15803d; }
+    .badge-iu { background: #fef9c3; color: #a16207; }
+    .badge-na { background: #f1f5f9; color: #64748b; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 text-sm">
+
+<!-- ===================== HEADER ===================== -->
+<header class="bg-blue-950 text-white shadow-xl sticky top-0 z-40">
+  <div class="px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-blue-800 flex items-center justify-center shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold leading-tight">Hospital Buin Paine – EMMC</h1>
+        <p class="text-blue-300 text-xs">Dashboard Equipamiento &amp; Mobiliario Médico Clínico</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+      <span id="statusChip" class="text-blue-300 text-xs hidden flex items-center gap-1">
+        <span id="statusDot" class="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span>
+        <span id="statusText"></span>
+      </span>
+      <button onclick="openConfigModal()"
+        class="flex items-center gap-1 bg-slate-600 hover:bg-slate-500 px-3 py-1.5 rounded text-xs font-medium transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Config
+      </button>
+      <a href="https://docs.google.com/spreadsheets/d/1B4drO9RVgZRwOk0hdNgCssbdtgmHkh3t-XzoT8_YVfo/edit"
+        target="_blank"
+        class="flex items-center gap-1 bg-orange-700 hover:bg-orange-600 px-3 py-1.5 rounded text-xs font-medium transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+        Abrir Sheets
+      </a>
+    </div>
+  </div>
+  <!-- Cambios pendientes -->
+  <div id="pendingBar" class="hidden bg-amber-600 text-white px-6 py-1.5 text-xs flex items-center justify-between">
+    <span id="pendingCount">0 cambios sin sincronizar</span>
+    <div class="flex gap-2">
+      <button onclick="exportChanges()" class="underline hover:no-underline">Exportar CSV</button>
+      <button onclick="syncChanges()" id="btnSync" class="underline hover:no-underline">Sincronizar con Sheets</button>
+      <button onclick="discardChanges()" class="underline hover:no-underline">Descartar</button>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== LOADING STATE ===================== -->
+<div id="loadingState" class="flex flex-col items-center justify-center py-24 gap-4">
+  <svg class="spinner w-10 h-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+  <p class="text-slate-500">Cargando datos desde Google Sheets…</p>
+</div>
+
+<!-- ===================== ERROR STATE ===================== -->
+<div id="errorState" class="hidden flex flex-col items-center justify-center py-24 gap-4">
+  <div class="bg-red-50 border border-red-200 rounded-xl p-6 max-w-lg text-center">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-red-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <h3 class="font-semibold text-red-700 mb-2">Error al cargar datos</h3>
+    <p id="errorMsg" class="text-red-600 text-sm mb-4"></p>
+    <div class="text-sm text-slate-600 text-left bg-white rounded p-3 border mb-4">
+      <p class="font-medium mb-1">Verifica que el servidor esté corriendo:</p>
+      <ul class="list-disc list-inside space-y-1 text-xs">
+        <li>Abre una terminal en la carpeta del proyecto</li>
+        <li>Ejecuta: <code class="bg-slate-100 px-1 rounded">python server.py</code></li>
+        <li>Asegúrate de que <code class="bg-slate-100 px-1 rounded">credentials.json</code> esté en la misma carpeta</li>
+      </ul>
+    </div>
+    <div class="flex gap-2 justify-center flex-wrap">
+      <button onclick="loadData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">Reintentar</button>
+      <label class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded text-sm cursor-pointer">
+        Importar CSV local
+        <input type="file" accept=".csv" class="hidden" onchange="importCSV(this)">
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MAIN CONTENT ===================== -->
+<main id="mainContent" class="hidden px-4 py-4 space-y-4">
+
+  <!-- KPI CARDS -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-600">
+      <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Total Ítems</p>
+      <p id="kpiItems" class="text-3xl font-bold text-blue-700 mt-1">—</p>
+      <p class="text-xs text-slate-400 mt-1">Registros cargados</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-emerald-500">
+      <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Total Equipos</p>
+      <p id="kpiQuantity" class="text-3xl font-bold text-emerald-600 mt-1">—</p>
+      <p class="text-xs text-slate-400 mt-1">Unidades (cantidad)</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-violet-500">
+      <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Proveedores</p>
+      <p id="kpiProveedores" class="text-3xl font-bold text-violet-600 mt-1">—</p>
+      <p class="text-xs text-slate-400 mt-1">Proveedores adjudicados</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-amber-500">
+      <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Servicios</p>
+      <p id="kpiServicios" class="text-3xl font-bold text-amber-600 mt-1">—</p>
+      <p class="text-xs text-slate-400 mt-1">Servicios clínicos</p>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div class="bg-white rounded-xl shadow-sm p-4">
+      <h3 class="font-semibold text-slate-700 mb-3 text-sm">Ítems por Servicio</h3>
+      <div class="relative h-48">
+        <canvas id="chartServicio"></canvas>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-4">
+      <h3 class="font-semibold text-slate-700 mb-3 text-sm">Ítems por Familia</h3>
+      <div class="relative h-48">
+        <canvas id="chartFamilia"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE SECTION -->
+  <div class="bg-white rounded-xl shadow-sm">
+    <!-- Filters Bar -->
+    <div class="p-4 border-b border-slate-100 flex flex-wrap gap-2 items-center">
+      <div class="relative flex-grow min-w-40">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input id="searchInput" type="text" placeholder="Buscar ítem, nombre, proveedor…"
+          class="pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg w-full text-sm focus:border-blue-400"
+          oninput="applyFilters()">
+      </div>
+      <select id="filterServicio" onchange="applyFilters()" class="border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-slate-600">
+        <option value="">Todos los servicios</option>
+      </select>
+      <select id="filterFamilia" onchange="applyFilters()" class="border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-slate-600">
+        <option value="">Todas las familias</option>
+      </select>
+      <select id="filterProveedor" onchange="applyFilters()" class="border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-slate-600">
+        <option value="">Todos los proveedores</option>
+      </select>
+      <select id="filterPiso" onchange="applyFilters()" class="border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-slate-600">
+        <option value="">Todos los pisos</option>
+      </select>
+      <button onclick="clearFilters()" class="text-xs text-slate-500 hover:text-slate-700 underline px-1">Limpiar filtros</button>
+      <div class="flex-grow"></div>
+      <label class="flex items-center gap-1 text-xs text-slate-600 cursor-pointer border border-slate-200 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+        </svg>
+        Importar CSV
+        <input type="file" accept=".csv" class="hidden" onchange="importCSV(this)">
+      </label>
+      <button onclick="exportCurrentCSV()" class="flex items-center gap-1 text-xs text-slate-600 border border-slate-200 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Exportar CSV
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs">
+        <thead>
+          <tr id="tableHead" class="bg-blue-950 text-white text-left">
+          </tr>
+        </thead>
+        <tbody id="tableBody" class="divide-y divide-slate-100">
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-4 py-3 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+      <span id="tableInfo" class="text-xs text-slate-500"></span>
+      <div class="flex items-center gap-1">
+        <button onclick="changePage(-1)" class="px-2 py-1 rounded border border-slate-200 text-xs hover:bg-slate-50 disabled:opacity-40" id="prevBtn">← Anterior</button>
+        <span id="pageInfo" class="px-3 text-xs text-slate-600"></span>
+        <button onclick="changePage(1)" class="px-2 py-1 rounded border border-slate-200 text-xs hover:bg-slate-50 disabled:opacity-40" id="nextBtn">Siguiente →</button>
+        <select id="pageSizeSelect" onchange="changePageSize()" class="ml-2 border border-slate-200 rounded px-1 py-1 text-xs text-slate-600">
+          <option value="25">25/página</option>
+          <option value="50" selected>50/página</option>
+          <option value="100">100/página</option>
+          <option value="9999">Todo</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ===================== EDIT MODAL ===================== -->
+<div id="editModal" class="hidden fixed inset-0 z-50 modal-backdrop bg-black/40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <div>
+        <h2 class="text-base font-bold text-slate-800">Editar Registro</h2>
+        <p id="editSubtitle" class="text-xs text-slate-500"></p>
+      </div>
+      <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 p-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div id="editFormContainer" class="overflow-y-auto flex-1 px-6 py-4">
+      <div id="editFields" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-100 flex justify-between items-center">
+      <button onclick="openInSheets()" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+        Abrir fila en Sheets
+      </button>
+      <div class="flex gap-2">
+        <button onclick="closeEditModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">Cancelar</button>
+        <button onclick="saveEdit()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CONFIG MODAL ===================== -->
+<div id="configModal" class="hidden fixed inset-0 z-50 modal-backdrop bg-black/40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <h2 class="text-base font-bold text-slate-800">Configuración</h2>
+      <button onclick="closeConfigModal()" class="text-slate-400 hover:text-slate-600 p-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="px-6 py-5 space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">ID de la hoja de cálculo</label>
+        <input id="cfgSheetId" type="text" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+          placeholder="1B4drO9RVgZRwOk0hdNgCssbdtgmHkh3t-XzoT8_YVfo">
+        <p class="text-xs text-slate-400 mt-1">Obtenido desde la URL de Google Sheets</p>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre de la pestaña (Sheet)</label>
+        <input id="cfgSheetName" type="text" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+          placeholder="Hoja1">
+        <p class="text-xs text-slate-400 mt-1">Nombre de la pestaña en el spreadsheet</p>
+      </div>
+      <div class="bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
+        <strong>Nota:</strong> La conexión a Google Sheets es gestionada automáticamente por el servidor local (server.py). Los cambios se sincronizan usando el botón "Sincronizar con Sheets".
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+      <button onclick="closeConfigModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">Cancelar</button>
+      <button onclick="saveConfig()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">Guardar y cargar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div id="toast" class="hidden fixed bottom-5 right-5 z-50 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-xl text-sm flex items-center gap-2 max-w-sm">
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const DEFAULT_SHEET_ID   = '1B4drO9RVgZRwOk0hdNgCssbdtgmHkh3t-XzoT8_YVfo';
+const DEFAULT_SHEET_NAME = 'Consolidado';
+
+let cfg = {
+  sheetId:   DEFAULT_SHEET_ID,
+  sheetName: DEFAULT_SHEET_NAME
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let allRows    = [];   // [{...colName: value}]
+let headers    = [];   // column names
+let filtered   = [];   // after filter
+let changes    = {};   // { "rowIndex_colIndex": newValue }
+let currentPage = 1;
+let pageSize    = 50;
+let sortCol     = -1;
+let sortDir     = 1;  // 1=asc, -1=desc
+let editingRow  = -1; // data index
+
+// Column visibility config – show these cols in the table
+const TABLE_COLS = [0,10,4,6,11,14,12,13,17,19,21,30,33,35];
+// Columns editable in modal (all except index 0 = Nº Ítem)
+const READONLY_COLS = new Set([0]);
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  loadData();
+  setInterval(loadData, 300000); // auto-refresh every 5 minutes
+});
+
+// ============================================================
+// DATA LOADING (from local Python server)
+// ============================================================
+async function loadData() {
+  setLoading(true);
+  try {
+    const res = await fetch('/api/data');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    processApiData(data);
+  } catch(e) {
+    setError('No se pudo conectar con el servidor local. Asegúrate de que server.py esté corriendo en http://localhost:8080');
+  }
+}
+
+function processApiData(data) {
+  try {
+    if (!data.headers || !data.rows) throw new Error('Respuesta inesperada del servidor');
+
+    headers = data.headers;
+    const rawRows = data.rows;
+
+    allRows = rawRows.map((r, i) => {
+      const obj = { _rowIdx: i + 1 };
+      headers.forEach((h, j) => { obj[j] = r[j] || ''; });
+      return obj;
+    });
+
+    changes = {};
+    updatePendingBar();
+    populateFilters();
+    applyFilters();
+    renderCharts();
+    updateKPIs();
+
+    const chip = document.getElementById('statusChip');
+    const dot  = document.getElementById('statusDot');
+    const txt  = document.getElementById('statusText');
+    chip.classList.remove('hidden');
+    if (data.status === 'Conectado') {
+      dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block';
+      txt.textContent = `Conectado · ${data.updated || ''}`;
+    } else {
+      dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 inline-block';
+      txt.textContent = data.status || 'Sin estado';
+    }
+
+    setMainVisible();
+  } catch(e) {
+    setError('Error al procesar la respuesta del servidor: ' + e.message);
+  }
+}
+
+// CSV processCSV kept for manual CSV import feature
+function processCSV(text) {
+  try {
+    const rows = parseCSV(text);
+    if (rows.length < 2) throw new Error('Archivo vacío o sin datos');
+    headers = rows[0];
+    const dataRows = rows.slice(1).filter(r => {
+      const first = (r[0] || '').trim();
+      if (!first) return false;
+      if (first === headers[0] || first === 'Nº Ítem' || first === 'N° Ítem') return false;
+      return true;
+    });
+    allRows = dataRows.map((r, i) => {
+      const obj = { _rowIdx: i + 1 };
+      headers.forEach((h, j) => { obj[j] = r[j] || ''; });
+      return obj;
+    });
+    changes = {};
+    updatePendingBar();
+    populateFilters();
+    applyFilters();
+    renderCharts();
+    updateKPIs();
+    setMainVisible();
+  } catch(e) {
+    setError('Error al procesar el archivo: ' + e.message);
+  }
+}
+
+// ============================================================
+// CSV PARSER (handles quoted fields)
+// ============================================================
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"' && text[i+1] === '"') { field += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { field += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(field.trim()); field = ''; }
+      else if (c === '\n') { row.push(field.trim()); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else { field += c; }
+    }
+  }
+  if (field || row.length) { row.push(field.trim()); rows.push(row); }
+  return rows.filter(r => r.some(c => c !== ''));
+}
+
+// ============================================================
+// FILTERS
+// ============================================================
+// Aliases de servicios: variantes → nombre canónico
+const SERVICE_ALIASES = {
+  'consultas ambulatorias': 'Consulta ambulatoria',
+};
+
+function normalizeVal(v) {
+  return (v || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function canonicalService(v) {
+  if (!v) return v;
+  return SERVICE_ALIASES[normalizeVal(v)] ?? v;
+}
+
+function uniqueNorm(values) {
+  // Dedup case-insensitive + accent-insensitive, keeping most frequent form
+  const freq = {}, canon = {}, canonCount = {};
+  values.forEach(v => {
+    if (!v || !v.trim()) return;
+    const key = normalizeVal(v);
+    freq[key] = (freq[key] || 0) + 1;
+    if (!canon[key] || freq[key] > canonCount[key]) {
+      canon[key] = v.trim();
+      canonCount[key] = freq[key];
+    }
+  });
+  return Object.keys(canon).sort().map(k => canon[k]);
+}
+
+function populateFilters() {
+  fillSelect('filterServicio',  uniqueNorm(allRows.map(r => canonicalService(r[4]))),  'Todos los servicios');
+  fillSelect('filterFamilia',   uniqueNorm(allRows.map(r => r[6])),  'Todas las familias');
+  fillSelect('filterProveedor', uniqueNorm(allRows.map(r => r[14])), 'Todos los proveedores');
+  fillSelect('filterPiso',      uniqueNorm(allRows.map(r => r[5])),  'Todos los pisos');
+}
+
+function fillSelect(id, options, placeholder) {
+  const sel = document.getElementById(id);
+  const cur = normalizeVal(sel.value);
+  sel.innerHTML = `<option value="">${placeholder}</option>`;
+  options.forEach(o => {
+    if (!o) return;
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    if (normalizeVal(o) === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function applyFilters() {
+  const q   = document.getElementById('searchInput').value.toLowerCase();
+  const srv = normalizeVal(document.getElementById('filterServicio').value);
+  const fam = normalizeVal(document.getElementById('filterFamilia').value);
+  const prv = normalizeVal(document.getElementById('filterProveedor').value);
+  const pso = normalizeVal(document.getElementById('filterPiso').value);
+
+  filtered = allRows.filter(r => {
+    if (srv && normalizeVal(canonicalService(r[4])) !== srv) return false;
+    if (fam && normalizeVal(r[6]) !== fam) return false;
+    if (prv && normalizeVal(r[14]) !== prv) return false;
+    if (pso && normalizeVal(r[5]) !== pso) return false;
+    if (q) {
+      const haystack = [r[0],r[10],r[14],r[4],r[6]].join(' ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (sortCol >= 0) {
+    filtered.sort((a, b) => {
+      const av = a[sortCol] || '', bv = b[sortCol] || '';
+      return av.localeCompare(bv, 'es', {numeric:true}) * sortDir;
+    });
+  }
+
+  currentPage = 1;
+  renderTable();
+  updateKPIs();
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterServicio').value = '';
+  document.getElementById('filterFamilia').value = '';
+  document.getElementById('filterProveedor').value = '';
+  document.getElementById('filterPiso').value = '';
+  applyFilters();
+}
+
+// ============================================================
+// TABLE RENDERING
+// ============================================================
+const COL_LABELS = {
+  0:  'Nº Ítem', 4: 'Servicio', 5: 'Piso', 6: 'Familia',
+  10: 'Nombre Equipo', 11: 'Cant.', 12: 'Plan Adq.', 13: 'Plan Inst.',
+  14: 'Proveedor', 17: 'Fchas Recinto', 19: 'Inicio', 21: 'Término',
+  30: 'Entrenamiento', 33: 'Fcha Pruebas IF', 35: 'Fcha Recepción'
+};
+
+function renderTableHeaders() {
+  const tr = document.getElementById('tableHead');
+  tr.innerHTML = '<th class="px-3 py-2 text-left font-medium text-xs w-10">#</th>';
+  TABLE_COLS.forEach(ci => {
+    const label = COL_LABELS[ci] || headers[ci] || `Col ${ci}`;
+    const isSort = sortCol === ci;
+    tr.innerHTML += `
+      <th class="th-sortable px-3 py-2 text-left font-medium text-xs whitespace-nowrap
+        ${isSort ? (sortDir === 1 ? 'th-sort-asc' : 'th-sort-desc') : ''}"
+        onclick="sortBy(${ci})">
+        ${escHtml(label)}
+      </th>`;
+  });
+  tr.innerHTML += '<th class="px-3 py-2 w-16"></th>';
+}
+
+function renderTable() {
+  renderTableHeaders();
+
+  const start = (currentPage - 1) * pageSize;
+  const end   = Math.min(start + pageSize, filtered.length);
+  const page  = filtered.slice(start, end);
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  page.forEach((row, pi) => {
+    const di = allRows.indexOf(row); // data index
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-blue-50 transition-colors cursor-pointer';
+
+    // row number
+    tr.innerHTML = `<td class="px-3 py-2 text-slate-400 text-center">${start + pi + 1}</td>`;
+
+    TABLE_COLS.forEach(ci => {
+      const key = `${di}_${ci}`;
+      const val = changes[key] !== undefined ? changes[key] : (row[ci] || '');
+      const edited = changes[key] !== undefined ? 'cell-edited' : '';
+      let display = escHtml(val);
+
+      // special rendering
+      if (ci === 4) display = escHtml(canonicalService(val));
+      if (ci === 30) { // Entrenamiento SI/IU/NA
+        const v = val.toUpperCase();
+        const cls = v === 'SI' ? 'badge-si' : v === 'IU' ? 'badge-iu' : 'badge-na';
+        display = `<span class="badge ${cls}">${escHtml(val) || '—'}</span>`;
+      }
+
+      tr.innerHTML += `<td class="px-3 py-2 whitespace-nowrap ${edited}" data-di="${di}" data-ci="${ci}">${display}</td>`;
+    });
+
+    tr.innerHTML += `<td class="px-3 py-2">
+      <button onclick="openEdit(${di})" class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-50">
+        Editar
+      </button>
+    </td>`;
+
+    tbody.appendChild(tr);
+  });
+
+  // Pagination info
+  document.getElementById('tableInfo').textContent =
+    `Mostrando ${start+1}–${end} de ${filtered.length} registros (${allRows.length} totales)`;
+  document.getElementById('pageInfo').textContent =
+    `Pág. ${currentPage} / ${Math.ceil(filtered.length / pageSize)}`;
+  document.getElementById('prevBtn').disabled = currentPage <= 1;
+  document.getElementById('nextBtn').disabled = end >= filtered.length;
+}
+
+function sortBy(ci) {
+  if (sortCol === ci) sortDir *= -1;
+  else { sortCol = ci; sortDir = 1; }
+  applyFilters();
+}
+
+function changePage(dir) {
+  const maxPage = Math.ceil(filtered.length / pageSize);
+  currentPage = Math.max(1, Math.min(currentPage + dir, maxPage));
+  renderTable();
+}
+
+function changePageSize() {
+  pageSize = parseInt(document.getElementById('pageSizeSelect').value);
+  currentPage = 1;
+  renderTable();
+}
+
+// ============================================================
+// KPI
+// ============================================================
+function updateKPIs() {
+  const rows = filtered.length ? filtered : allRows;
+  document.getElementById('kpiItems').textContent = allRows.length.toLocaleString('es-CL');
+  document.getElementById('kpiQuantity').textContent =
+    allRows.reduce((s, r) => s + (parseInt(r[11]) || 0), 0).toLocaleString('es-CL');
+  document.getElementById('kpiProveedores').textContent =
+    unique(allRows.map(r => r[14])).filter(Boolean).length;
+  document.getElementById('kpiServicios').textContent =
+    unique(allRows.map(r => r[4])).filter(Boolean).length;
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+let chartSrv = null, chartFam = null;
+
+function renderCharts() {
+  const srv = countBy(allRows, 4);
+  const fam = countBy(allRows, 6);
+
+  const COLORS = [
+    '#2563eb','#7c3aed','#059669','#d97706','#dc2626',
+    '#0891b2','#65a30d','#9333ea','#f59e0b','#10b981',
+    '#6366f1','#ef4444','#14b8a6','#f97316','#8b5cf6'
+  ];
+
+  if (chartSrv) chartSrv.destroy();
+  chartSrv = new Chart(document.getElementById('chartServicio'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(srv),
+      datasets: [{ data: Object.values(srv), backgroundColor: COLORS, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+        x: { ticks: { font: { size: 9 }, maxRotation: 30 } }
+      }
+    }
+  });
+
+  if (chartFam) chartFam.destroy();
+  chartFam = new Chart(document.getElementById('chartFamilia'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(fam),
+      datasets: [{ data: Object.values(fam), backgroundColor: COLORS }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 12 } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// EDIT MODAL
+// ============================================================
+function openEdit(di) {
+  editingRow = di;
+  const row = allRows[di];
+  document.getElementById('editSubtitle').textContent =
+    `Ítem: ${row[0]}  |  ${row[10]}`;
+
+  const container = document.getElementById('editFields');
+  container.innerHTML = '';
+
+  headers.forEach((h, ci) => {
+    if (READONLY_COLS.has(ci)) return;
+    const key = `${di}_${ci}`;
+    const val = changes[key] !== undefined ? changes[key] : (row[ci] || '');
+    const isDate = h.toLowerCase().includes('fecha') || h.toLowerCase().includes('inicio') || h.toLowerCase().includes('termino');
+
+    let input;
+    if (h === 'PLAN DE ENTRENAMIENTO APLICA (SI/IU)') {
+      input = `<select id="ef_${ci}" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+        <option ${val==='SI'?'selected':''}>SI</option>
+        <option ${val==='IU'?'selected':''}>IU</option>
+        <option ${val==='NA'?'selected':''}>NA</option>
+        <option ${val===''?'selected':''} value=""></option>
+      </select>`;
+    } else if (h === '019CD (SI/NO)') {
+      input = `<select id="ef_${ci}" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+        <option ${val==='SI'?'selected':''}>SI</option>
+        <option ${val==='NO'?'selected':''}>NO</option>
+      </select>`;
+    } else {
+      const type = isDate ? 'text' : 'text';
+      const extra = changes[key] !== undefined ? 'bg-yellow-50 border-yellow-300' : '';
+      input = `<input id="ef_${ci}" type="${type}" value="${escHtml(val)}"
+        class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm ${extra}">`;
+    }
+
+    container.innerHTML += `
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">${escHtml(h)}</label>
+        ${input}
+      </div>`;
+  });
+
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.add('hidden');
+  editingRow = -1;
+}
+
+function saveEdit() {
+  if (editingRow < 0) return;
+  const row = allRows[editingRow];
+  let changed = 0;
+
+  headers.forEach((h, ci) => {
+    if (READONLY_COLS.has(ci)) return;
+    const el = document.getElementById(`ef_${ci}`);
+    if (!el) return;
+    const newVal = el.value;
+    const oldVal = row[ci] || '';
+    if (newVal !== oldVal) {
+      changes[`${editingRow}_${ci}`] = newVal;
+      changed++;
+    }
+  });
+
+  if (changed > 0) {
+    showToast(`${changed} campo(s) modificado(s). Guarda o sincroniza los cambios.`);
+    updatePendingBar();
+    renderTable();
+  } else {
+    showToast('Sin cambios.');
+  }
+  closeEditModal();
+}
+
+function openInSheets() {
+  const rowNum = editingRow + 2; // +1 header +1 1-based
+  const url = `https://docs.google.com/spreadsheets/d/${cfg.sheetId}/edit#gid=0&range=A${rowNum}`;
+  window.open(url, '_blank');
+}
+
+// ============================================================
+// CHANGES / SYNC
+// ============================================================
+function updatePendingBar() {
+  const n = Object.keys(changes).length;
+  const bar = document.getElementById('pendingBar');
+  if (n > 0) {
+    bar.classList.remove('hidden');
+    document.getElementById('pendingCount').textContent = `${n} celda(s) modificada(s) sin sincronizar`;
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+function discardChanges() {
+  if (!confirm('¿Descartar todos los cambios locales?')) return;
+  changes = {};
+  updatePendingBar();
+  renderTable();
+  showToast('Cambios descartados.');
+}
+
+function exportChanges() {
+  // Export only changed rows as CSV
+  const changedRows = new Set(Object.keys(changes).map(k => parseInt(k.split('_')[0])));
+  const rows = [headers];
+  changedRows.forEach(di => {
+    const row = allRows[di];
+    rows.push(headers.map((_, ci) => {
+      const key = `${di}_${ci}`;
+      return changes[key] !== undefined ? changes[key] : (row[ci] || '');
+    }));
+  });
+  downloadCSV(rows, 'cambios_emmc.csv');
+  showToast('CSV con cambios exportado.');
+}
+
+function exportCurrentCSV() {
+  const rows = [headers];
+  filtered.forEach(row => {
+    const di = allRows.indexOf(row);
+    rows.push(headers.map((_, ci) => {
+      const key = `${di}_${ci}`;
+      return changes[key] !== undefined ? changes[key] : (row[ci] || '');
+    }));
+  });
+  downloadCSV(rows, 'emmc_dashboard.csv');
+}
+
+function downloadCSV(rows, filename) {
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+// ============================================================
+// GOOGLE SHEETS SYNC (via local server)
+// ============================================================
+async function syncChanges() {
+  if (!Object.keys(changes).length) { showToast('No hay cambios.'); return; }
+
+  const updates = [];
+  Object.entries(changes).forEach(([key, val]) => {
+    const [di, ci] = key.split('_').map(Number);
+    updates.push({ row: di + 2, col: ci + 1, value: val }); // 1-based, +1 for header row
+  });
+
+  try {
+    const res = await fetch('/api/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates })
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const result = await res.json();
+    if (!result.ok) throw new Error(result.error || 'Error desconocido');
+
+    Object.entries(changes).forEach(([key, val]) => {
+      const [di, ci] = key.split('_').map(Number);
+      allRows[di][ci] = val;
+    });
+    changes = {};
+    updatePendingBar();
+    renderTable();
+    showToast('✓ Cambios sincronizados con Google Sheets.');
+  } catch(e) {
+    showToast('Error al sincronizar: ' + e.message);
+  }
+}
+
+// ============================================================
+// CSV IMPORT
+// ============================================================
+function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => processCSV(e.target.result);
+  reader.readAsText(file, 'UTF-8');
+  input.value = '';
+}
+
+// ============================================================
+// CONFIG MODAL
+// ============================================================
+function openConfigModal() {
+  document.getElementById('cfgSheetId').value   = cfg.sheetId;
+  document.getElementById('cfgSheetName').value = cfg.sheetName;
+  document.getElementById('configModal').classList.remove('hidden');
+}
+
+function closeConfigModal() {
+  document.getElementById('configModal').classList.add('hidden');
+}
+
+function saveConfig() {
+  cfg.sheetId   = document.getElementById('cfgSheetId').value.trim()   || DEFAULT_SHEET_ID;
+  cfg.sheetName = document.getElementById('cfgSheetName').value.trim() || DEFAULT_SHEET_NAME;
+  closeConfigModal();
+  showToast('Configuración guardada. El servidor usa estos valores al iniciarse.');
+}
+
+// ============================================================
+// UI STATE
+// ============================================================
+function setLoading(on) {
+  document.getElementById('loadingState').classList.toggle('hidden', !on);
+  document.getElementById('errorState').classList.add('hidden');
+  document.getElementById('mainContent').classList.add('hidden');
+}
+
+function setError(msg) {
+  document.getElementById('loadingState').classList.add('hidden');
+  document.getElementById('errorState').classList.remove('hidden');
+  document.getElementById('mainContent').classList.add('hidden');
+  document.getElementById('errorMsg').textContent = msg;
+}
+
+function setMainVisible() {
+  document.getElementById('loadingState').classList.add('hidden');
+  document.getElementById('errorState').classList.add('hidden');
+  document.getElementById('mainContent').classList.remove('hidden');
+}
+
+function showToast(msg, duration = 3000) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.remove('hidden');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => t.classList.add('hidden'), duration);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function unique(arr) { return [...new Set(arr)]; }
+
+function countBy(rows, ci) {
+  const counts = {};
+  rows.forEach(r => { const v = r[ci] || 'Sin dato'; counts[v] = (counts[v]||0) + 1; });
+  return counts;
+}
+
+function columnToLetter(col) {
+  let result = '';
+  let c = col + 1;
+  while (c > 0) {
+    const rem = (c - 1) % 26;
+    result = String.fromCharCode(65 + rem) + result;
+    c = Math.floor((c - 1) / 26);
+  }
+  return result;
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Close modals on backdrop click
+document.getElementById('editModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('editModal')) closeEditModal();
+});
+document.getElementById('configModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('configModal')) closeConfigModal();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeEditModal(); closeConfigModal(); }
+});
+</script>
+</body>
+</html>
