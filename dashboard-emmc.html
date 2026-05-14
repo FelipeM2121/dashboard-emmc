@@ -313,6 +313,8 @@ let cfg = {
   sheetName: DEFAULT_SHEET_NAME
 };
 
+const IS_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+
 // ============================================================
 // STATE
 // ============================================================
@@ -335,23 +337,87 @@ const READONLY_COLS = new Set([0]);
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  if (!IS_LOCAL) {
+    // Ocultar funciones que requieren el servidor local
+    document.getElementById('btnSync')?.remove();
+    document.querySelectorAll('[onclick="syncChanges()"]').forEach(el => el.remove());
+  }
   loadData();
-  setInterval(loadData, 300000); // auto-refresh every 5 minutes
+  setInterval(loadData, 300000);
 });
 
 // ============================================================
-// DATA LOADING (from local Python server)
+// DATA LOADING
 // ============================================================
 async function loadData() {
   setLoading(true);
   try {
-    const res = await fetch('/api/data');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    processApiData(data);
+    if (IS_LOCAL) {
+      await loadFromServer();
+    } else {
+      await loadFromSheets();
+    }
   } catch(e) {
-    setError('No se pudo conectar con el servidor local. Asegúrate de que server.py esté corriendo en http://localhost:8080');
+    setError(e.message || 'Error al cargar datos');
   }
+}
+
+async function loadFromServer() {
+  const res = await fetch('/api/data');
+  if (!res.ok) throw new Error(`HTTP ${res.status} – Asegúrate de que server.py esté corriendo en http://localhost:8080`);
+  const data = await res.json();
+  processApiData(data);
+}
+
+async function loadFromSheets() {
+  const url = `https://docs.google.com/spreadsheets/d/${cfg.sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(cfg.sheetName)}&headers=0`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Error ${resp.status} al acceder a Google Sheets. Asegúrate de que la planilla esté compartida como "Cualquiera con el enlace puede ver".`);
+  const text = await resp.text();
+  const { headers: h, rows: r } = parseGvizResponse(text);
+  processApiData({
+    headers: h,
+    rows: r,
+    status: 'Conectado',
+    updated: new Date().toLocaleString('es-CL')
+  });
+}
+
+function parseGvizResponse(text) {
+  const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
+  if (!match) throw new Error('Respuesta inesperada de Google Sheets. Verifica que la planilla sea pública.');
+  let json;
+  try { json = JSON.parse(match[1]); } catch(e) { throw new Error('Error al parsear respuesta de Google Sheets.'); }
+  if (json.status !== 'ok') {
+    const msg = json.errors?.[0]?.detailed_message || json.errors?.[0]?.message || 'Error desconocido';
+    throw new Error('Google Sheets: ' + msg + '. Asegúrate de que la planilla sea pública (cualquiera con el enlace puede ver).');
+  }
+
+  const table = json.table;
+  const allDataRows = (table.rows || []).map(r =>
+    r.c.map(c => c === null ? '' : (c.f != null ? c.f : (c.v != null ? String(c.v) : '')))
+  );
+
+  // Auto-detectar fila de encabezado (misma lógica que server.py)
+  let headerIdx = 0;
+  for (let i = 0; i < allDataRows.length; i++) {
+    const first = (allDataRows[i][0] || '').trim();
+    if (first && !/^[\d.]+$/.test(first)) { headerIdx = i; break; }
+  }
+
+  const hdrs = allDataRows[headerIdx].map(h => (h || '').trim());
+  const headerVal = hdrs[0];
+  const nCols = hdrs.length;
+
+  const rows = allDataRows.slice(headerIdx + 1)
+    .filter(r => { const f = (r[0] || '').trim(); return f && f !== headerVal; })
+    .map(r => {
+      const c = r.map(v => (v || '').trim());
+      while (c.length < nCols) c.push('');
+      return c.slice(0, nCols);
+    });
+
+  return { headers: hdrs, rows };
 }
 
 function processApiData(data) {
@@ -598,11 +664,13 @@ function renderTable() {
       tr.innerHTML += `<td class="px-3 py-2 whitespace-nowrap ${edited}" data-di="${di}" data-ci="${ci}">${display}</td>`;
     });
 
-    tr.innerHTML += `<td class="px-3 py-2">
-      <button onclick="openEdit(${di})" class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-50">
-        Editar
-      </button>
-    </td>`;
+    if (IS_LOCAL) {
+      tr.innerHTML += `<td class="px-3 py-2">
+        <button onclick="openEdit(${di})" class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-50">
+          Editar
+        </button>
+      </td>`;
+    }
 
     tbody.appendChild(tr);
   });
