@@ -313,11 +313,12 @@
 // ============================================================
 const DEFAULT_SHEET_ID   = '1B4drO9RVgZRwOk0hdNgCssbdtgmHkh3t-XzoT8_YVfo';
 const DEFAULT_SHEET_NAME = 'Consolidado';
+const DEFAULT_GAS_URL    = 'https://script.google.com/macros/s/AKfycbyEo-iCxIKkIzgxhiFIzB6dnFR5FPxJKWsyTjN2Og2gNTN9k-FL72dU4_VCiD2l-yokKw/exec';
 
 let cfg = {
   sheetId:   localStorage.getItem('cfg_sheetId')   || DEFAULT_SHEET_ID,
   sheetName: localStorage.getItem('cfg_sheetName') || DEFAULT_SHEET_NAME,
-  gasUrl:    localStorage.getItem('cfg_gasUrl')    || ''
+  gasUrl:    localStorage.getItem('cfg_gasUrl')    || DEFAULT_GAS_URL
 };
 
 const IS_LOCAL     = ['localhost', '127.0.0.1'].includes(location.hostname);
