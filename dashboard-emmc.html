@@ -602,6 +602,7 @@ function applyFilters() {
   currentPage = 1;
   renderTable();
   updateKPIs();
+  renderCharts();
 }
 
 function clearFilters() {
@@ -752,8 +753,9 @@ function updateKPIs() {
 let chartSrv = null, chartFam = null;
 
 function renderCharts() {
-  const srv = countBy(allRows, 4);
-  const fam = countBy(allRows, 6);
+  const data = filtered.length ? filtered : allRows;
+  const srv = countBy(data, 4);
+  const fam = countBy(data, 6);
 
   const COLORS = [
     '#2563eb','#7c3aed','#059669','#d97706','#dc2626',
