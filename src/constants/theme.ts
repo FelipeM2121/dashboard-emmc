@@ -1,0 +1,32 @@
+export const COLORS = {
+  primary: "#00b4d8",
+  primaryDark: "#0090b0",
+  primaryLight: "#67d9f0",
+  green: "#10b981",
+  greenLight: "#6ee7b7",
+  orange: "#f59e0b",
+  orangeLight: "#fcd34d",
+  red: "#ef4444",
+  redLight: "#fca5a5",
+  purple: "#8b5cf6",
+  blue: "#1b3a5c",
+  cyan: "#00b4d8",
+  bg: "#f0f6fa",
+  sidebar: "#0f1e2e",
+  sidebarActive: "#162b40",
+  white: "#ffffff",
+  card: "#ffffff",
+  border: "#d6e8f0",
+  borderLight: "#e8f4fa",
+  text: "#0f1e2e",
+  textMuted: "#4a6580",
+  textLight: "#8aaec4",
+  textSidebar: "#7aa8c4",
+  textSidebarActive: "#ffffff",
+};
+
+export const CHART_COLORS = [
+  "#00b4d8","#0090b0","#67d9f0","#1b3a5c","#10b981",
+  "#f59e0b","#8b5cf6","#ef4444","#14b8a6","#f97316",
+  "#3b82f6","#e879f9",
+];
