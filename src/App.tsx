@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import {
   ResumenTab, PorServicioTab, PorProveedorTab,
   PorFamiliaTab, PorFechaTab, TablaTab,
 } from './components/Dashboard';
-import { loadData } from './data/loader';
+import { loadData, computeSummary } from './data/loader';
 import { COLORS } from './constants/theme';
 import type { EMMCItem, SummaryData } from './types';
+
+type TypeFilter = 'General' | 'EMMC' | 'MNC';
 
 const EMPTY_SUMMARY: SummaryData = {
   totalItems: 0, totalQty: 0,
@@ -17,15 +19,21 @@ const EMPTY_SUMMARY: SummaryData = {
   fechaStats: { totalConFecha: 0, fechaMin: '', fechaMax: '', totalMeses: 0, totalSemanas: 0 },
 };
 
+const TYPE_OPTIONS: { value: TypeFilter; label: string; color: string }[] = [
+  { value: 'General',  label: 'General',  color: COLORS.primary },
+  { value: 'EMMC',     label: 'EMMC',     color: COLORS.red },
+  { value: 'MNC',      label: 'MNC',      color: COLORS.green },
+];
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('Resumen');
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState('');
-  const [items, setItems] = useState<EMMCItem[]>([]);
-  const [summary, setSummary] = useState<SummaryData>(EMPTY_SUMMARY);
+  const [allItems, setAllItems] = useState<EMMCItem[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [gasUrl, setGasUrl] = useState('');
   const [updated, setUpdated] = useState('');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('General');
 
   // Config modal state
   const [showConfig, setShowConfig] = useState(false);
@@ -37,8 +45,7 @@ export default function App() {
     setStatus('loading');
     try {
       const result = await loadData();
-      setItems(result.items);
-      setSummary(result.summary);
+      setAllItems(result.items);
       setHeaders(result.headers);
       setGasUrl(result.gasUrl);
       setUpdated(result.updated);
@@ -49,7 +56,23 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => { fetchData(); const t = setInterval(fetchData, 300_000); return () => clearInterval(t); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+    const t = setInterval(fetchData, 300_000);
+    return () => clearInterval(t);
+  }, [fetchData]);
+
+  // Filter items by type and recompute summary
+  const items = useMemo(() => {
+    if (typeFilter === 'General') return allItems;
+    const lower = typeFilter.toLowerCase();
+    return allItems.filter(i => i.tipo.toLowerCase().includes(lower));
+  }, [allItems, typeFilter]);
+
+  const summary: SummaryData = useMemo(
+    () => (items.length > 0 ? computeSummary(items) : EMPTY_SUMMARY),
+    [items]
+  );
 
   function saveConfig() {
     localStorage.setItem('cfg_gasUrl',    cfgGasUrl.trim());
@@ -64,6 +87,47 @@ export default function App() {
     border: `1px solid ${COLORS.border}`, fontSize: 14,
     background: COLORS.bg, color: COLORS.text, boxSizing: 'border-box',
   };
+
+  // Segmented filter control
+  const TypeFilterBar = () => (
+    <div style={{
+      display: 'flex',
+      gap: 6,
+      marginBottom: 28,
+      background: COLORS.bg,
+      border: `1px solid ${COLORS.border}`,
+      borderRadius: 14,
+      padding: 4,
+      width: 'fit-content',
+    }}>
+      {TYPE_OPTIONS.map(opt => {
+        const isActive = typeFilter === opt.value;
+        return (
+          <button
+            key={opt.value}
+            onClick={() => setTypeFilter(opt.value)}
+            style={{
+              padding: '8px 22px',
+              borderRadius: 10,
+              border: 'none',
+              background: isActive
+                ? `linear-gradient(135deg, ${opt.color} 0%, ${opt.color}cc 100%)`
+                : 'transparent',
+              color: isActive ? '#fff' : COLORS.textMuted,
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: 'pointer',
+              transition: 'all 0.18s ease',
+              boxShadow: isActive ? `0 4px 12px ${opt.color}40` : 'none',
+              letterSpacing: 0.3,
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex' }}>
@@ -111,6 +175,9 @@ export default function App() {
           {/* Tabs */}
           {status === 'ready' && (
             <>
+              {/* Global type filter — visible in all tabs */}
+              <TypeFilterBar />
+
               {activeTab === 'Resumen'       && <ResumenTab      summary={summary} />}
               {activeTab === 'Por Servicio'  && <PorServicioTab  summary={summary} />}
               {activeTab === 'Por Proveedor' && <PorProveedorTab summary={summary} />}
@@ -119,7 +186,7 @@ export default function App() {
               {activeTab === 'Tabla'         && <TablaTab items={items} headers={headers} gasUrl={gasUrl} onSaved={fetchData} />}
 
               <div className="dashboard-footer">
-                <span>Hospital Buin Paine • EMMC</span>
+                <span>Hospital Buin Paine • {typeFilter === 'General' ? 'EMMC + MNC' : typeFilter}</span>
                 <span>
                   {summary.totalItems.toLocaleString('es-CL')} ítems •{' '}
                   {summary.totalQty.toLocaleString('es-CL')} unidades •{' '}

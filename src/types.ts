@@ -1,5 +1,6 @@
 export interface EMMCItem {
   item: string;
+  tipo: string;       // EMMC | MnC
   servicio: string;
   piso: string;
   familia: string;

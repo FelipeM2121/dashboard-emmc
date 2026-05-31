@@ -42,6 +42,7 @@ export function rawRowsToItems(rows: string[][], headers: string[]): EMMCItem[] 
   };
   const ci = {
     ITEM:          findCol(/^n[°º]?\s*[ií]tem/i,      COL.ITEM),
+    TIPO:          findCol(/emmc|mnc/i,                1),
     SERVICIO:      findCol(/^servicio/i,               COL.SERVICIO),
     PISO:          findCol(/^piso/i,                   COL.PISO),
     FAMILIA:       findCol(/^familia/i,                COL.FAMILIA),
@@ -78,6 +79,7 @@ export function rawRowsToItems(rows: string[][], headers: string[]): EMMCItem[] 
 
   return rows.map((row, i) => ({
     item:          cell(row, ci.ITEM),
+    tipo:          cell(row, ci.TIPO),
     servicio:      cell(row, ci.SERVICIO),
     piso:          cell(row, ci.PISO),
     familia:       cell(row, ci.FAMILIA),

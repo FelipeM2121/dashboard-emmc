@@ -9,13 +9,22 @@ export interface TabConfig {
 }
 
 export const TABS: TabConfig[] = [
-  { name: 'Resumen',      icon: Icons.chart,    color: COLORS.primary },
-  { name: 'Por Servicio', icon: Icons.hospital, color: COLORS.red },
-  { name: 'Por Proveedor',icon: Icons.building, color: COLORS.orange },
-  { name: 'Por Familia',  icon: Icons.folder,   color: COLORS.green },
-  { name: 'Por Fecha',    icon: Icons.calendar, color: '#f59e0b' },
-  { name: 'Tabla',        icon: Icons.list,     color: COLORS.purple },
+  { name: 'Resumen',       icon: Icons.chart,    color: COLORS.primary },
+  { name: 'Por Servicio',  icon: Icons.hospital, color: COLORS.red },
+  { name: 'Por Proveedor', icon: Icons.building, color: COLORS.orange },
+  { name: 'Por Familia',   icon: Icons.folder,   color: COLORS.green },
+  { name: 'Por Fecha',     icon: Icons.calendar, color: '#f59e0b' },
+  { name: 'Tabla',         icon: Icons.list,     color: COLORS.purple },
 ];
+
+const FULL_LABELS: Record<string, string> = {
+  'Resumen':       'Resumen General',
+  'Por Servicio':  'Por Servicio',
+  'Por Proveedor': 'Por Proveedor',
+  'Por Familia':   'Por Familia',
+  'Por Fecha':     'Por Fecha',
+  'Tabla':         'Tabla de Datos',
+};
 
 const SHORT_LABELS: Record<string, string> = {
   'Resumen':       'Resumen',
@@ -36,6 +45,20 @@ interface SidebarProps {
 export function Sidebar({ activeTab, onTabChange, updated, status }: SidebarProps) {
   return (
     <div className="sidebar">
+      {/* Logo / brand */}
+      <div className="sidebar-logo">
+        <div className="sidebar-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+            <rect x="10.5" y="5" width="3" height="14" rx="1.5" fill="white" fillOpacity="0.9"/>
+            <rect x="5" y="10.5" width="14" height="3" rx="1.5" fill="white" fillOpacity="0.9"/>
+          </svg>
+        </div>
+        <div>
+          <div className="sidebar-logo-text">EMMC</div>
+          <div className="sidebar-logo-sub">Hospital Buin Paine</div>
+        </div>
+      </div>
+
       <div className="sidebar-nav">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.name;
@@ -54,10 +77,14 @@ export function Sidebar({ activeTab, onTabChange, updated, status }: SidebarProp
               onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = `${tab.color}22`; }}
               onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
             >
-              <div className="sidebar-tab-icon" style={{ opacity: isActive ? 1 : 0.5 }}>
+              <div className="sidebar-tab-icon" style={{ opacity: isActive ? 1 : 0.6 }}>
                 {tab.icon}
               </div>
-              <span className="sidebar-tab-label">{SHORT_LABELS[tab.name]}</span>
+              <span className="sidebar-tab-label">
+                {/* desktop: full name; mobile: short */}
+                <span className="label-full">{FULL_LABELS[tab.name]}</span>
+                <span className="label-short">{SHORT_LABELS[tab.name]}</span>
+              </span>
             </button>
           );
         })}
@@ -65,20 +92,14 @@ export function Sidebar({ activeTab, onTabChange, updated, status }: SidebarProp
 
       <div className="sidebar-divider" />
 
-      {/* Status dot */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 4,
-        padding: '12px 0',
-      }}>
+      {/* Status */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px' }}>
         <div style={{
-          width: 10, height: 10, borderRadius: '50%',
+          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
           background: status === 'ready' ? COLORS.green : status === 'error' ? COLORS.red : COLORS.orange,
-          boxShadow: status === 'ready' ? `0 0 6px ${COLORS.green}` : undefined,
+          boxShadow: status === 'ready' ? `0 0 5px ${COLORS.green}` : undefined,
         }} />
-        <span style={{ fontSize: 9, color: COLORS.textSidebar, textAlign: 'center', padding: '0 4px', lineHeight: 1.3 }}>
+        <span style={{ fontSize: 10, color: COLORS.textSidebar, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {updated || (status === 'loading' ? 'Cargando…' : status === 'error' ? 'Error' : '')}
         </span>
       </div>
