@@ -715,11 +715,31 @@ function changePageSize() {
 // ============================================================
 // KPI
 // ============================================================
+function parseCant(val) {
+  const s = String(val || '').trim();
+  if (!s) return null;
+  // Chilean format: periods = thousands sep, comma = decimal sep
+  const n = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+  return isNaN(n) ? null : n;
+}
+
 function updateKPIs() {
   const rows = filtered.length ? filtered : allRows;
+  // Find Cant. column dynamically (fallback to index 11)
+  const cantIdx = headers.findIndex(h => /^cant/i.test((h || '').trim()));
+  const ci = cantIdx >= 0 ? cantIdx : 11;
+
+  let totalCant = 0, blancos = 0;
+  rows.forEach(r => {
+    const v = parseCant(r[ci]);
+    if (v === null) { blancos++; totalCant += 1; }
+    else totalCant += v;
+  });
+
   document.getElementById('kpiItems').textContent = rows.length.toLocaleString('es-CL');
-  document.getElementById('kpiQuantity').textContent =
-    rows.reduce((s, r) => s + (parseFloat(String(r[11]).replace(',', '.')) || 0), 0).toLocaleString('es-CL');
+  document.getElementById('kpiQuantity').textContent = totalCant.toLocaleString('es-CL');
+  const sub = document.querySelector('#kpiQuantity + p.text-xs');
+  if (sub) sub.textContent = blancos > 0 ? `Unidades (${blancos} sin cant. → 1)` : 'Unidades (cantidad)';
   document.getElementById('kpiProveedores').textContent =
     unique(rows.map(r => r[14])).filter(Boolean).length;
   document.getElementById('kpiServicios').textContent =
