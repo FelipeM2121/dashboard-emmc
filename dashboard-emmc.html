@@ -717,13 +717,13 @@ function changePageSize() {
 // ============================================================
 function updateKPIs() {
   const rows = filtered.length ? filtered : allRows;
-  document.getElementById('kpiItems').textContent = allRows.length.toLocaleString('es-CL');
+  document.getElementById('kpiItems').textContent = rows.length.toLocaleString('es-CL');
   document.getElementById('kpiQuantity').textContent =
-    allRows.reduce((s, r) => s + (parseInt(r[11]) || 0), 0).toLocaleString('es-CL');
+    rows.reduce((s, r) => s + (parseFloat(String(r[11]).replace(',', '.')) || 0), 0).toLocaleString('es-CL');
   document.getElementById('kpiProveedores').textContent =
-    unique(allRows.map(r => r[14])).filter(Boolean).length;
+    unique(rows.map(r => r[14])).filter(Boolean).length;
   document.getElementById('kpiServicios').textContent =
-    unique(allRows.map(r => r[4])).filter(Boolean).length;
+    unique(rows.map(r => r[4])).filter(Boolean).length;
 }
 
 // ============================================================
