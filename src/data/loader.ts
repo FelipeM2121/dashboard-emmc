@@ -58,6 +58,24 @@ export function rawRowsToItems(rows: string[][], headers: string[]): EMMCItem[] 
     FECHA_RECEP:   findCol(/recepci[oó]n/i,            COL.FECHA_RECEPCION),
   };
 
+  // ── Diagnóstico ──────────────────────────────────────────────
+  console.group('[EMMC] Diagnóstico de carga');
+  console.log('Total filas recibidas:', rows.length);
+  console.log('Headers detectados:', headers);
+  console.log('Índice columna Cant.:', ci.CANTIDAD, '→', headers[ci.CANTIDAD] ?? '(no encontrado)');
+  const muestras = rows.slice(0, 5).map(r => r[ci.CANTIDAD]);
+  console.log('Primeros 5 valores de Cant.:', muestras);
+  const sinCant  = rows.filter(r => !(r[ci.CANTIDAD] || '').trim()).length;
+  const sumaRaw  = rows.reduce((s, r) => {
+    const v = parseFloat((r[ci.CANTIDAD] || '').trim().replace(/\./g,'').replace(',','.'));
+    return s + (isNaN(v) ? 0 : v);
+  }, 0);
+  console.log(`Filas con Cant. vacía: ${sinCant} (serán contadas como 1)`);
+  console.log(`Suma Cant. celdas con valor: ${sumaRaw}`);
+  console.log(`Total estimado (vacías→1): ${sumaRaw + sinCant}`);
+  console.groupEnd();
+  // ─────────────────────────────────────────────────────────────
+
   return rows.map((row, i) => ({
     item:          cell(row, ci.ITEM),
     servicio:      cell(row, ci.SERVICIO),
