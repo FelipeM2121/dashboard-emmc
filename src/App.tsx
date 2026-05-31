@@ -137,24 +137,11 @@ export default function App() {
         <div className="content-container">
           <Header activeTab={activeTab} />
 
-          {/* Config button */}
-          <button onClick={() => setShowConfig(true)} style={{
-            position: 'fixed', top: 16, right: 16, zIndex: 500,
-            background: COLORS.sidebar, color: COLORS.textSidebar,
-            border: 'none', borderRadius: 10, padding: '8px 14px',
-            fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}
-          onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-          onMouseLeave={e => e.currentTarget.style.color = COLORS.textSidebar}>
-            ⚙ Config
-          </button>
-
           {/* Loading */}
           {status === 'loading' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 80, gap: 20 }}>
               <div style={{ width: 48, height: 48, border: `4px solid ${COLORS.borderLight}`, borderTopColor: COLORS.primary, borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
-              <p style={{ color: COLORS.textMuted, fontSize: 16 }}>Cargando datos desde Google Sheets…</p>
+              <p style={{ color: COLORS.textMuted, fontSize: 16 }}>Cargando datos…</p>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           )}

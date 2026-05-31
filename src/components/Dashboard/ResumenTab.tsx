@@ -22,7 +22,6 @@ export function ResumenTab({ summary: S }: ResumenTabProps) {
     <>
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 32 }}>
-        <KPICard label="Total Ítems"     value={S.totalItems}        sub="registros"  icon={Icons.list}     color={COLORS.primary} />
         <KPICard label="Total Equipos"   value={S.totalQty}          sub="unidades"   icon={Icons.stack}    color={COLORS.green} />
         <KPICard label="Proveedores"     value={S.uniqueProveedores} sub="adjudicados" icon={Icons.building} color={COLORS.orange} />
         <KPICard label="Servicios"       value={S.uniqueServicios}   sub="clínicos"   icon={Icons.hospital} color={COLORS.red} />
